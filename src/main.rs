@@ -103,11 +103,26 @@ impl Ball {
 }
 
 fn resolve_collision(a: &mut Rect, vel: &mut Vec2, b: &Rect) -> bool {
-    if let Some(_intersection) = a.intersect(*b) {
-        vel.y *= -1f32;
-        return true;
+    let intersection = match a.intersect(*b) {
+        Some(intersection) => intersection,
+        None => return false,
+    };
+
+    let a_center = a.center();
+    let b_center = b.center();
+    let to = b_center - a_center;
+    let to_signum = to.signum();
+    match intersection.w > intersection.h {
+        true => {
+            a.y -= to_signum.y * intersection.h;
+            vel.y = -to_signum.y * vel.y.abs();
+        }
+        false => {
+            a.x -= to_signum.x * intersection.h;
+            vel.x = -to_signum.x * vel.x.abs();
+        }
     }
-    false
+    return true;
 }
 
 #[macroquad::main("breakout")]
