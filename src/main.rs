@@ -89,7 +89,7 @@ impl Ball {
         }
         let right_side = screen_width() - self.rect.w;
         if self.rect.x > right_side {
-            self.vel.y = 1f32;
+            self.vel.x = -1f32;
         }
         let top = 0f32;
         if self.rect.y < top {
