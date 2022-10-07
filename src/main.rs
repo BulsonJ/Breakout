@@ -153,14 +153,14 @@ async fn main() {
 
     balls.push(Ball::new(vec2(
         screen_width() * 0.5f32,
-        screen_height() * 0.5f32,
+        player.rect.y - (PLAYER_SIZE.y * 0.5f32) - BALL_SIZE,
     )));
 
     loop {
         if is_key_pressed(KeyCode::Space) {
             balls.push(Ball::new(vec2(
                 screen_width() * 0.5f32,
-                screen_height() * 0.5f32,
+                screen_height() * 0.8f32,
             )));
         }
         player.update(get_frame_time());
