@@ -131,7 +131,8 @@ fn resolve_collision(a: &mut Rect, vel: &mut Vec2, b: &Rect) -> bool {
 
 #[macroquad::main("breakout")]
 async fn main() {
-    let font = load_ttf_font("res/Roboto-Medium.ttf").await.unwrap();
+    let bytes = include_bytes!("../res/Roboto-Medium.ttf");
+    let font = load_ttf_font_from_bytes(bytes).unwrap();
     let mut score = 0;
 
     let mut player = Player::new();
