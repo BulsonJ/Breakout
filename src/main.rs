@@ -14,7 +14,7 @@ fn draw_title_text(text: &str, font: Font) {
     draw_text_ex(
         text,
         screen_width() * 0.5f32 - text_size.width * 0.5f32,
-        screen_height() * 0.5f32 - text_size.width * 0.5f32,
+        screen_height() * 0.5f32 - text_size.height * 0.5f32,
         TextParams {
             font,
             font_size: text_font_size,
@@ -188,7 +188,7 @@ async fn main() {
     let mut game_state = GameState::Menu;
     let font = load_ttf_font_from_bytes(bytes).unwrap();
     let mut score = 0;
-    let mut player_lives = 0;
+    let mut player_lives = 3;
 
     let mut player = Player::new();
     let mut blocks = Vec::new();
@@ -197,7 +197,7 @@ async fn main() {
     init_blocks(&mut blocks);
     balls.push(Ball::new(vec2(
         screen_width() * 0.5f32,
-        player.rect.y - (PLAYER_SIZE.y * 0.5f32) - BALL_SIZE,
+        screen_height() * 0.7f32,
     )));
 
     loop {
@@ -208,10 +208,10 @@ async fn main() {
                 }
             }
             GameState::Game => {
-                if is_key_pressed(KeyCode::Space) {
+                if balls.is_empty() && is_key_pressed(KeyCode::Space) {
                     balls.push(Ball::new(vec2(
-                        screen_width() * 0.5f32,
-                        screen_height() * 0.8f32,
+                        player.rect.x + player.rect.w * 0.5f32,
+                        screen_height() * 0.7f32,
                     )));
                 }
                 player.update(get_frame_time());
@@ -275,6 +275,11 @@ async fn main() {
                 draw_title_text(text, font);
             }
             GameState::Game => {
+                if balls.is_empty(){
+                    let respawn_text = "Press SPACE to spawn another ball";
+                    draw_title_text(respawn_text, font);
+                }
+                
                 let score_text = format!("score : {}", score);
                 let score_text_font_size = 30u16;
                 let score_text_size =
