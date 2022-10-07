@@ -62,7 +62,7 @@ impl Block {
     }
 
     pub fn draw(&self) {
-        let color = match self.lives{
+        let color = match self.lives {
             2 => RED,
             _ => ORANGE,
         };
@@ -174,7 +174,7 @@ async fn main() {
             for block in blocks.iter_mut() {
                 if resolve_collision(&mut ball.rect, &mut ball.vel, &mut block.rect) {
                     block.lives -= 1;
-                    if block.lives <= 0{
+                    if block.lives <= 0 {
                         score += 1;
                     }
                 }
@@ -184,8 +184,8 @@ async fn main() {
         let balls_len = balls.len();
         let was_last_ball = balls_len == 1;
         balls.retain(|ball| ball.rect.y < screen_height());
-        let removed_balls = balls_len -  balls.len();
-        if removed_balls > 0 && was_last_ball{
+        let removed_balls = balls_len - balls.len();
+        if removed_balls > 0 && was_last_ball {
             player_lives -= 1;
         }
 
@@ -204,16 +204,28 @@ async fn main() {
         let score_text_font_size = 30u16;
         let score_text_size = measure_text(&score_text, Some(font), score_text_font_size, 1.0);
         draw_text_ex(
-            &score_text, 
+            &score_text,
             screen_width() * 0.5f32 - score_text_size.width * 0.5f32,
             40.0,
-            TextParams { font, font_size: score_text_font_size, color: BLACK, ..Default::default() });
+            TextParams {
+                font,
+                font_size: score_text_font_size,
+                color: BLACK,
+                ..Default::default()
+            },
+        );
 
         draw_text_ex(
-           &format!("lives : {}", player_lives), 
-           30.0,
-           40.0,
-           TextParams { font, font_size: score_text_font_size, color: BLACK, ..Default::default() });
+            &format!("lives : {}", player_lives),
+            30.0,
+            40.0,
+            TextParams {
+                font,
+                font_size: score_text_font_size,
+                color: BLACK,
+                ..Default::default()
+            },
+        );
         next_frame().await
     }
 }
