@@ -57,12 +57,16 @@ impl Block {
     pub fn new(pos: Vec2) -> Self {
         Self {
             rect: Rect::new(pos.x, pos.y, BLOCK_SIZE.x, BLOCK_SIZE.y),
-            lives: 1,
+            lives: 2,
         }
     }
 
     pub fn draw(&self) {
-        draw_rectangle(self.rect.x, self.rect.y, self.rect.w, self.rect.h, DARKGRAY);
+        let color = match self.lives{
+            2 => RED,
+            _ => ORANGE,
+        };
+        draw_rectangle(self.rect.x, self.rect.y, self.rect.w, self.rect.h, color);
     }
 }
 
@@ -127,6 +131,9 @@ fn resolve_collision(a: &mut Rect, vel: &mut Vec2, b: &Rect) -> bool {
 
 #[macroquad::main("breakout")]
 async fn main() {
+    let font = load_ttf_font("res/Roboto-Medium.ttf").await.unwrap();
+    let mut score = 0;
+
     let mut player = Player::new();
     let mut blocks = Vec::new();
     let mut balls = Vec::new();
@@ -165,6 +172,7 @@ async fn main() {
             for block in blocks.iter_mut() {
                 if resolve_collision(&mut ball.rect, &mut ball.vel, &mut block.rect) {
                     block.lives -= 1;
+                    score += 1;
                 }
             }
         }
@@ -179,6 +187,15 @@ async fn main() {
         for ball in balls.iter() {
             ball.draw()
         }
+
+        let score_text = format!("score : {}", score);
+        let score_text_font_size = 30u16;
+        let score_text_size = measure_text(&score_text, Some(font), score_text_font_size, 1.0);
+        draw_text_ex(
+            &score_text, 
+            screen_width() * 0.5f32 - score_text_size.width * 0.5f32,
+            40.0,
+            TextParams { font, font_size: score_text_font_size, color: BLACK, ..Default::default() });
         next_frame().await
     }
 }
