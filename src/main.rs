@@ -134,6 +134,7 @@ async fn main() {
     let bytes = include_bytes!("../res/Roboto-Medium.ttf");
     let font = load_ttf_font_from_bytes(bytes).unwrap();
     let mut score = 0;
+    let mut player_lives = 0;
 
     let mut player = Player::new();
     let mut blocks = Vec::new();
@@ -180,6 +181,14 @@ async fn main() {
             }
         }
 
+        let balls_len = balls.len();
+        let was_last_ball = balls_len == 1;
+        balls.retain(|ball| ball.rect.y < screen_height());
+        let removed_balls = balls_len -  balls.len();
+        if removed_balls > 0 && was_last_ball{
+            player_lives -= 1;
+        }
+
         blocks.retain(|block| block.lives > 0);
 
         clear_background(WHITE);
@@ -199,6 +208,12 @@ async fn main() {
             screen_width() * 0.5f32 - score_text_size.width * 0.5f32,
             40.0,
             TextParams { font, font_size: score_text_font_size, color: BLACK, ..Default::default() });
+
+        draw_text_ex(
+           &format!("lives : {}", player_lives), 
+           30.0,
+           40.0,
+           TextParams { font, font_size: score_text_font_size, color: BLACK, ..Default::default() });
         next_frame().await
     }
 }
