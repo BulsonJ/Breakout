@@ -172,7 +172,9 @@ async fn main() {
             for block in blocks.iter_mut() {
                 if resolve_collision(&mut ball.rect, &mut ball.vel, &mut block.rect) {
                     block.lives -= 1;
-                    score += 1;
+                    if block.lives <= 0{
+                        score += 1;
+                    }
                 }
             }
         }
