@@ -219,7 +219,6 @@ async fn main() {
 
     let mut game_run_state = GameState::new();
 
-    init_blocks(&mut game_run_state.blocks);
     game_run_state.balls.push(Ball::new(vec2(
         screen_width() * 0.5f32,
         screen_height() * 0.7f32,
