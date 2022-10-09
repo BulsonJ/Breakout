@@ -24,7 +24,7 @@ fn draw_title_text(text: &str, font: Font) {
     );
 }
 
-enum GameState {
+enum GamePlayState {
     Menu,
     Game,
     LevelCompleted,
@@ -165,19 +165,28 @@ fn resolve_collision(a: &mut Rect, vel: &mut Vec2, b: &Rect) -> bool {
     true
 }
 
-fn reset_game(
-    score: &mut i32,
-    player_lives: &mut i32,
-    blocks: &mut Vec<Block>,
-    balls: &mut Vec<Ball>,
-    player: &mut Player,
-) {
-    *player = Player::new();
-    *score = 0;
-    *player_lives = 3;
-    balls.clear();
-    blocks.clear();
-    init_blocks(blocks);
+struct GameState {
+    score: i32,
+    player_lives: i32,
+    blocks: Vec<Block>,
+    balls: Vec<Ball>,
+    player: Player,
+}
+
+impl GameState {
+    fn new() -> Self {
+        GameState {
+            score: 0,
+            player_lives: 3,
+            balls: Vec::new(),
+            blocks: {
+                let mut blocks = Vec::new();
+                init_blocks(&mut blocks);
+                blocks
+            },
+            player: Player::new(),
+        }
+    }
 }
 
 fn init_blocks(blocks: &mut Vec<Block>) {
@@ -205,42 +214,38 @@ fn init_blocks(blocks: &mut Vec<Block>) {
 #[macroquad::main("breakout")]
 async fn main() {
     let bytes = include_bytes!("../res/Roboto-Medium.ttf");
-    let mut game_state = GameState::Menu;
+    let mut game_state = GamePlayState::Menu;
     let font = load_ttf_font_from_bytes(bytes).unwrap();
-    let mut score = 0;
-    let mut player_lives = 3;
 
-    let mut player = Player::new();
-    let mut blocks = Vec::new();
-    let mut balls = Vec::new();
+    let mut game_run_state = GameState::new();
 
-    init_blocks(&mut blocks);
-    balls.push(Ball::new(vec2(
+    init_blocks(&mut game_run_state.blocks);
+    game_run_state.balls.push(Ball::new(vec2(
         screen_width() * 0.5f32,
         screen_height() * 0.7f32,
     )));
 
     loop {
         match game_state {
-            GameState::Menu => {
+            GamePlayState::Menu => {
                 if is_key_pressed(KeyCode::Space) {
-                    game_state = GameState::Game;
+                    game_state = GamePlayState::Game;
                 }
             }
-            GameState::Game => {
-                player.update(get_frame_time());
-                for ball in balls.iter_mut() {
+            GamePlayState::Game => {
+                game_run_state.player.update(get_frame_time());
+                for ball in game_run_state.balls.iter_mut() {
                     ball.update(get_frame_time());
                 }
 
                 let mut spawn_later = vec![];
-                for ball in balls.iter_mut() {
-                    resolve_collision(&mut ball.rect, &mut ball.vel, &player.rect);
-                    for block in blocks.iter_mut() {
+                for ball in game_run_state.balls.iter_mut() {
+                    resolve_collision(&mut ball.rect, &mut ball.vel, &game_run_state.player.rect);
+                    for block in game_run_state.blocks.iter_mut() {
                         if resolve_collision(&mut ball.rect, &mut ball.vel, &block.rect) {
                             block.lives -= 1;
                             if block.lives <= 0 {
-                                score += 1;
+                                game_run_state.score += 1;
                                 if let BlockType::SpawnBallOnDeath = block.block_type {
                                     spawn_later.push(Ball::new(ball.rect.point()));
                                 }
@@ -249,56 +254,54 @@ async fn main() {
                     }
                 }
                 for ball in spawn_later.into_iter() {
-                    balls.push(ball);
+                    game_run_state.balls.push(ball);
                 }
 
-                let balls_len = balls.len();
-                balls.retain(|ball| ball.rect.y < screen_height());
-                let removed_balls = balls_len - balls.len();
-                if removed_balls > 0 && balls.is_empty() {
-                    player_lives -= 1;
-                    if player_lives <= 0 {
-                        game_state = GameState::Dead;
+                let balls_len = game_run_state.balls.len();
+                game_run_state
+                    .balls
+                    .retain(|ball| ball.rect.y < screen_height());
+                let removed_balls = balls_len - game_run_state.balls.len();
+                if removed_balls > 0 && game_run_state.balls.is_empty() {
+                    game_run_state.player_lives -= 1;
+                    if game_run_state.player_lives <= 0 {
+                        game_state = GamePlayState::Dead;
                         continue;
                     }
-                    balls.push(Ball::new(player.rect.point() + vec2(0f32, -50f32)));
+                    game_run_state.balls.push(Ball::new(
+                        game_run_state.player.rect.point() + vec2(0f32, -50f32),
+                    ));
                 }
 
-                blocks.retain(|block| block.lives > 0);
-                if blocks.is_empty() {
-                    game_state = GameState::LevelCompleted;
+                game_run_state.blocks.retain(|block| block.lives > 0);
+                if game_run_state.blocks.is_empty() {
+                    game_state = GamePlayState::LevelCompleted;
                 }
             }
-            GameState::LevelCompleted | GameState::Dead => {
+            GamePlayState::LevelCompleted | GamePlayState::Dead => {
                 if is_key_pressed(KeyCode::Space) {
-                    game_state = GameState::Menu;
-                    reset_game(
-                        &mut score,
-                        &mut player_lives,
-                        &mut blocks,
-                        &mut balls,
-                        &mut player,
-                    );
+                    game_state = GamePlayState::Menu;
+                    game_run_state = GameState::new();
                 }
             }
         }
 
         clear_background(WHITE);
-        player.draw();
-        for block in blocks.iter() {
+        game_run_state.player.draw();
+        for block in game_run_state.blocks.iter() {
             block.draw()
         }
-        for ball in balls.iter() {
+        for ball in game_run_state.balls.iter() {
             ball.draw()
         }
 
         match game_state {
-            GameState::Menu => {
+            GamePlayState::Menu => {
                 let text = "Press SPACE to start";
                 draw_title_text(text, font);
             }
-            GameState::Game => {
-                let score_text = format!("score : {}", score);
+            GamePlayState::Game => {
+                let score_text = format!("score : {}", game_run_state.score);
                 let score_text_font_size = 30u16;
                 let score_text_size =
                     measure_text(&score_text, Some(font), score_text_font_size, 1.0);
@@ -315,7 +318,7 @@ async fn main() {
                 );
 
                 draw_text_ex(
-                    &format!("lives : {}", player_lives),
+                    &format!("lives : {}", game_run_state.player_lives),
                     30.0,
                     40.0,
                     TextParams {
@@ -326,11 +329,11 @@ async fn main() {
                     },
                 );
             }
-            GameState::LevelCompleted => {
-                draw_title_text(&format!("You win! {} score", score), font);
+            GamePlayState::LevelCompleted => {
+                draw_title_text(&format!("You win! {} score", game_run_state.score), font);
             }
-            GameState::Dead => {
-                draw_title_text(&format!("You LOST! {} score", score), font);
+            GamePlayState::Dead => {
+                draw_title_text(&format!("You LOST! {} score", game_run_state.score), font);
             }
         }
 
