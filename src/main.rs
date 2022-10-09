@@ -257,10 +257,11 @@ async fn main() {
                 let removed_balls = balls_len - balls.len();
                 if removed_balls > 0 && balls.is_empty() {
                     player_lives -= 1;
-                    balls.push(Ball::new(player.rect.point() + vec2(0f32, -50f32)));
                     if player_lives <= 0 {
                         game_state = GameState::Dead;
+                        continue;
                     }
+                    balls.push(Ball::new(player.rect.point() + vec2(0f32, -50f32)));
                 }
 
                 blocks.retain(|block| block.lives > 0);
