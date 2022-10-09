@@ -10,7 +10,7 @@ const BALL_SPEED: f32 = 400f32;
 
 fn draw_title_text(text: &str, font: Font) {
     let text_font_size = 50u16;
-    let text_size = measure_text(&text, Some(font), text_font_size, 1.0);
+    let text_size = measure_text(text, Some(font), text_font_size, 1.0);
     draw_text_ex(
         text,
         screen_width() * 0.5f32 - text_size.width * 0.5f32,
@@ -149,7 +149,7 @@ fn resolve_collision(a: &mut Rect, vel: &mut Vec2, b: &Rect) -> bool {
             vel.x = -to_signum.x * vel.x.abs();
         }
     }
-    return true;
+    true
 }
 
 fn reset_game(
@@ -208,20 +208,14 @@ async fn main() {
                 }
             }
             GameState::Game => {
-                if balls.is_empty() && is_key_pressed(KeyCode::Space) {
-                    balls.push(Ball::new(vec2(
-                        player.rect.x + player.rect.w * 0.5f32,
-                        screen_height() * 0.7f32,
-                    )));
-                }
                 player.update(get_frame_time());
                 for ball in balls.iter_mut() {
                     ball.update(get_frame_time());
                 }
                 for ball in balls.iter_mut() {
-                    resolve_collision(&mut ball.rect, &mut ball.vel, &mut player.rect);
+                    resolve_collision(&mut ball.rect, &mut ball.vel, & player.rect);
                     for block in blocks.iter_mut() {
-                        if resolve_collision(&mut ball.rect, &mut ball.vel, &mut block.rect) {
+                        if resolve_collision(&mut ball.rect, &mut ball.vel, & block.rect) {
                             block.lives -= 1;
                             if block.lives <= 0 {
                                 score += 1;
@@ -231,11 +225,11 @@ async fn main() {
                 }
 
                 let balls_len = balls.len();
-                let was_last_ball = balls_len == 1;
                 balls.retain(|ball| ball.rect.y < screen_height());
                 let removed_balls = balls_len - balls.len();
-                if removed_balls > 0 && was_last_ball {
+                if removed_balls > 0 && balls.is_empty() {
                     player_lives -= 1;
+                    balls.push(Ball::new(player.rect.point() + vec2(0f32, -50f32)));
                     if player_lives <= 0 {
                         game_state = GameState::Dead;
                     }
@@ -274,12 +268,7 @@ async fn main() {
                 let text = "Press SPACE to start";
                 draw_title_text(text, font);
             }
-            GameState::Game => {
-                if balls.is_empty(){
-                    let respawn_text = "Press SPACE to spawn another ball";
-                    draw_title_text(respawn_text, font);
-                }
-                
+            GameState::Game => {        
                 let score_text = format!("score : {}", score);
                 let score_text_font_size = 30u16;
                 let score_text_size =
