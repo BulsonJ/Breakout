@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use macroquad::prelude::*;
 
 const PLAYER_SIZE: Vec2 = Vec2::from_array([150f32, 40f32]);
@@ -211,6 +213,42 @@ fn init_blocks(blocks: &mut Vec<Block>) {
     }
 }
 
+struct Timer {
+    start_time: Option<Instant>,
+    end_time: Option<Instant>,
+}
+
+impl Timer {
+    fn new() -> Self {
+        Timer {
+            start_time: Default::default(),
+            end_time: Default::default(),
+        }
+    }
+
+    fn start(&mut self) {
+        self.start_time = Some(Instant::now());
+    }
+
+    fn end(&mut self) {
+        self.end_time = Some(Instant::now());
+    }
+
+    fn get_duration(&self) -> Option<Duration> {
+        match self.start_time{
+            Some(start) => {
+                match self.end_time{
+                    Some(end) => {
+                        Some(end - start)
+                    },
+                    None => {None},
+                }
+            },
+            None => {None},
+        }
+    }
+}
+
 #[macroquad::main("breakout")]
 async fn main() {
     let bytes = include_bytes!("../res/Roboto-Medium.ttf");
@@ -224,11 +262,22 @@ async fn main() {
         screen_height() * 0.7f32,
     )));
 
+    let mut game_timer = Timer::new();
+    game_timer.start();
+    game_timer.end();
+
+    let time_elapsed = game_timer.get_duration();
+    
+    if time_elapsed.is_some(){
+        println!("Value of timer is: {}", time_elapsed.unwrap().as_secs())
+    }
+
     loop {
         match game_state {
             GamePlayState::Menu => {
                 if is_key_pressed(KeyCode::Space) {
                     game_state = GamePlayState::Game;
+                
                 }
             }
             GamePlayState::Game => {
