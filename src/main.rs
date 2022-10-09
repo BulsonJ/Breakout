@@ -71,23 +71,36 @@ impl Player {
     }
 }
 
+enum BlockType {
+    Regular,
+    SpawnBallOnDeath,
+}
+
 struct Block {
     rect: Rect,
     lives: i32,
+    block_type: BlockType,
 }
 
 impl Block {
-    pub fn new(pos: Vec2) -> Self {
+    pub fn new(pos: Vec2, block_type: BlockType) -> Self {
         Self {
             rect: Rect::new(pos.x, pos.y, BLOCK_SIZE.x, BLOCK_SIZE.y),
             lives: 2,
+            block_type,
         }
     }
 
     pub fn draw(&self) {
-        let color = match self.lives {
-            2 => RED,
-            _ => ORANGE,
+        let color = match self.block_type {
+            BlockType::Regular => match self.lives {
+                2 => RED,
+                _ => ORANGE,
+            },
+            BlockType::SpawnBallOnDeath => match self.lives {
+                2 => DARKGREEN,
+                _ => GREEN,
+            },
         };
         draw_rectangle(self.rect.x, self.rect.y, self.rect.w, self.rect.h, color);
     }
@@ -178,7 +191,14 @@ fn init_blocks(blocks: &mut Vec<Block>) {
     for i in 0..width * height {
         let block_x = (i % width) as f32 * total_block_size.x;
         let block_y = (i / width) as f32 * total_block_size.y;
-        blocks.push(Block::new(board_start_pos + vec2(block_x, block_y)));
+        blocks.push(Block::new(
+            board_start_pos + vec2(block_x, block_y),
+            BlockType::Regular,
+        ));
+    }
+    for _ in 0..3 {
+        let rand_index = rand::gen_range(0, blocks.len());
+        blocks[rand_index].block_type = BlockType::SpawnBallOnDeath;
     }
 }
 
@@ -212,16 +232,24 @@ async fn main() {
                 for ball in balls.iter_mut() {
                     ball.update(get_frame_time());
                 }
+
+                let mut spawn_later = vec![];
                 for ball in balls.iter_mut() {
-                    resolve_collision(&mut ball.rect, &mut ball.vel, & player.rect);
+                    resolve_collision(&mut ball.rect, &mut ball.vel, &player.rect);
                     for block in blocks.iter_mut() {
-                        if resolve_collision(&mut ball.rect, &mut ball.vel, & block.rect) {
+                        if resolve_collision(&mut ball.rect, &mut ball.vel, &block.rect) {
                             block.lives -= 1;
                             if block.lives <= 0 {
                                 score += 1;
+                                if let BlockType::SpawnBallOnDeath = block.block_type {
+                                    spawn_later.push(Ball::new(ball.rect.point()));
+                                }
                             }
                         }
                     }
+                }
+                for ball in spawn_later.into_iter() {
+                    balls.push(ball);
                 }
 
                 let balls_len = balls.len();
@@ -268,7 +296,7 @@ async fn main() {
                 let text = "Press SPACE to start";
                 draw_title_text(text, font);
             }
-            GameState::Game => {        
+            GameState::Game => {
                 let score_text = format!("score : {}", score);
                 let score_text_font_size = 30u16;
                 let score_text_size =
