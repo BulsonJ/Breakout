@@ -35,7 +35,7 @@ enum GamePlayState {
 
 struct Player {
     rect: Rect,
-    speed : f32,
+    speed: f32,
 }
 
 impl Player {
@@ -47,7 +47,7 @@ impl Player {
                 PLAYER_SIZE.x,
                 PLAYER_SIZE.y,
             ),
-            speed : PLAYER_INITIAL_SPEED
+            speed: PLAYER_INITIAL_SPEED,
         }
     }
 
@@ -180,17 +180,15 @@ fn resolve_collision(a: &mut Rect, vel: &mut Vec2, b: &Rect) -> bool {
 }
 
 struct PowerupTimer {
-    time_left :f32 ,
+    time_left: f32,
 }
 
 impl PowerupTimer {
-    fn new() -> Self{
-        Self {
-            time_left : 0f32,
-        }
+    fn new() -> Self {
+        Self { time_left: 0f32 }
     }
 
-    fn start_timer(&mut self, length : f32){
+    fn start_timer(&mut self, length: f32) {
         self.time_left = length;
     }
 
@@ -212,8 +210,8 @@ struct GameState {
     blocks: Vec<Block>,
     balls: Vec<Ball>,
     player: Player,
-    increase_size_timer : PowerupTimer,
-    increase_speed_timer : PowerupTimer
+    increase_size_timer: PowerupTimer,
+    increase_speed_timer: PowerupTimer,
 }
 
 impl GameState {
@@ -228,8 +226,8 @@ impl GameState {
                 blocks
             },
             player: Player::new(),
-            increase_size_timer : PowerupTimer::new(),
-            increase_speed_timer : PowerupTimer::new(),
+            increase_size_timer: PowerupTimer::new(),
+            increase_speed_timer: PowerupTimer::new(),
         }
     }
 }
@@ -290,10 +288,10 @@ async fn main() {
                     ball.update(get_frame_time());
                 }
                 game_run_state.increase_size_timer.update(get_frame_time());
-                if game_run_state.increase_size_timer.is_timer_done(){
+                if game_run_state.increase_size_timer.is_timer_done() {
                     game_run_state.player.rect.w = PLAYER_SIZE.x;
                 }
-                if game_run_state.increase_speed_timer.is_timer_done(){
+                if game_run_state.increase_speed_timer.is_timer_done() {
                     game_run_state.player.speed = PLAYER_INITIAL_SPEED;
                 }
 
@@ -349,6 +347,10 @@ async fn main() {
                 if is_key_pressed(KeyCode::Space) {
                     game_state = GamePlayState::Menu;
                     game_run_state = GameState::new();
+                    game_run_state.balls.push(Ball::new(vec2(
+                        screen_width() * 0.5f32,
+                        screen_height() * 0.7f32,
+                    )));
                 }
             }
         }
