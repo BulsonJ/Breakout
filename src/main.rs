@@ -2,7 +2,8 @@ use macroquad::prelude::*;
 
 const PLAYER_SIZE: Vec2 = Vec2::from_array([150f32, 40f32]);
 const PLAYER_INCREASED_SIZE: f32 = PLAYER_SIZE.x + 50f32;
-const PLAYER_SPEED: f32 = 700f32;
+const PLAYER_INITIAL_SPEED: f32 = 700f32;
+const PLAYER_SPEED_POWERUP: f32 = 1000f32;
 
 const BLOCK_SIZE: Vec2 = Vec2::from_array([100f32, 40f32]);
 
@@ -34,6 +35,7 @@ enum GamePlayState {
 
 struct Player {
     rect: Rect,
+    speed : f32,
 }
 
 impl Player {
@@ -45,6 +47,7 @@ impl Player {
                 PLAYER_SIZE.x,
                 PLAYER_SIZE.y,
             ),
+            speed : PLAYER_INITIAL_SPEED
         }
     }
 
@@ -55,7 +58,7 @@ impl Player {
             _ => 0f32,
         };
 
-        self.rect.x += x_move * dt * PLAYER_SPEED;
+        self.rect.x += x_move * dt * self.speed;
 
         let left_side: f32 = 0f32;
         if self.rect.x < left_side {
@@ -76,6 +79,7 @@ enum BlockType {
     Regular,
     SpawnBallOnDeath,
     SizeIncrease,
+    SpeedIncrease,
 }
 
 struct Block {
@@ -106,6 +110,10 @@ impl Block {
             BlockType::SizeIncrease => match self.lives {
                 2 => DARKBLUE,
                 _ => BLUE,
+            },
+            BlockType::SpeedIncrease => match self.lives {
+                2 => PURPLE,
+                _ => PINK,
             },
         };
         draw_rectangle(self.rect.x, self.rect.y, self.rect.w, self.rect.h, color);
@@ -173,20 +181,17 @@ fn resolve_collision(a: &mut Rect, vel: &mut Vec2, b: &Rect) -> bool {
 
 struct PowerupTimer {
     time_left :f32 ,
-    active : bool,
 }
 
 impl PowerupTimer {
     fn new() -> Self{
         Self {
             time_left : 0f32,
-            active : false
         }
     }
 
     fn start_timer(&mut self, length : f32){
         self.time_left = length;
-        self.active = true;
     }
 
     fn update(&mut self, dt: f32) {
@@ -207,7 +212,8 @@ struct GameState {
     blocks: Vec<Block>,
     balls: Vec<Ball>,
     player: Player,
-    increase_size_timer : PowerupTimer
+    increase_size_timer : PowerupTimer,
+    increase_speed_timer : PowerupTimer
 }
 
 impl GameState {
@@ -223,6 +229,7 @@ impl GameState {
             },
             player: Player::new(),
             increase_size_timer : PowerupTimer::new(),
+            increase_speed_timer : PowerupTimer::new(),
         }
     }
 }
@@ -250,6 +257,10 @@ fn init_blocks(blocks: &mut Vec<Block>) {
     for _ in 0..3 {
         let rand_index = rand::gen_range(0, blocks.len());
         blocks[rand_index].block_type = BlockType::SizeIncrease;
+    }
+    for _ in 0..3 {
+        let rand_index = rand::gen_range(0, blocks.len());
+        blocks[rand_index].block_type = BlockType::SpeedIncrease;
     }
 }
 
@@ -279,8 +290,11 @@ async fn main() {
                     ball.update(get_frame_time());
                 }
                 game_run_state.increase_size_timer.update(get_frame_time());
-                if (game_run_state.increase_size_timer.is_timer_done()){
+                if game_run_state.increase_size_timer.is_timer_done(){
                     game_run_state.player.rect.w = PLAYER_SIZE.x;
+                }
+                if game_run_state.increase_speed_timer.is_timer_done(){
+                    game_run_state.player.speed = PLAYER_INITIAL_SPEED;
                 }
 
                 let mut spawn_later = vec![];
@@ -297,6 +311,10 @@ async fn main() {
                                 if let BlockType::SizeIncrease = block.block_type {
                                     game_run_state.increase_size_timer.start_timer(10f32);
                                     game_run_state.player.rect.w = PLAYER_INCREASED_SIZE;
+                                }
+                                if let BlockType::SpeedIncrease = block.block_type {
+                                    game_run_state.increase_speed_timer.start_timer(10f32);
+                                    game_run_state.player.speed = PLAYER_SPEED_POWERUP;
                                 }
                             }
                         }
