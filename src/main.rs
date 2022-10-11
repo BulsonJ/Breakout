@@ -1,6 +1,7 @@
 use macroquad::prelude::*;
 
 const PLAYER_SIZE: Vec2 = Vec2::from_array([150f32, 40f32]);
+const PLAYER_INCREASED_SIZE: f32 = PLAYER_SIZE.x + 50f32;
 const PLAYER_SPEED: f32 = 700f32;
 
 const BLOCK_SIZE: Vec2 = Vec2::from_array([100f32, 40f32]);
@@ -74,6 +75,7 @@ impl Player {
 enum BlockType {
     Regular,
     SpawnBallOnDeath,
+    SizeIncrease,
 }
 
 struct Block {
@@ -100,6 +102,10 @@ impl Block {
             BlockType::SpawnBallOnDeath => match self.lives {
                 2 => DARKGREEN,
                 _ => GREEN,
+            },
+            BlockType::SizeIncrease => match self.lives {
+                2 => DARKBLUE,
+                _ => BLUE,
             },
         };
         draw_rectangle(self.rect.x, self.rect.y, self.rect.w, self.rect.h, color);
@@ -165,12 +171,43 @@ fn resolve_collision(a: &mut Rect, vel: &mut Vec2, b: &Rect) -> bool {
     true
 }
 
+struct PowerupTimer {
+    time_left :f32 ,
+    active : bool,
+}
+
+impl PowerupTimer {
+    fn new() -> Self{
+        Self {
+            time_left : 0f32,
+            active : false
+        }
+    }
+
+    fn start_timer(&mut self, length : f32){
+        self.time_left = length;
+        self.active = true;
+    }
+
+    fn update(&mut self, dt: f32) {
+        self.time_left -= dt;
+    }
+
+    fn is_timer_done(&self) -> bool {
+        if self.time_left <= 0f32 {
+            return true;
+        }
+        false
+    }
+}
+
 struct GameState {
     score: i32,
     player_lives: i32,
     blocks: Vec<Block>,
     balls: Vec<Ball>,
     player: Player,
+    increase_size_timer : PowerupTimer
 }
 
 impl GameState {
@@ -185,6 +222,7 @@ impl GameState {
                 blocks
             },
             player: Player::new(),
+            increase_size_timer : PowerupTimer::new(),
         }
     }
 }
@@ -208,6 +246,10 @@ fn init_blocks(blocks: &mut Vec<Block>) {
     for _ in 0..3 {
         let rand_index = rand::gen_range(0, blocks.len());
         blocks[rand_index].block_type = BlockType::SpawnBallOnDeath;
+    }
+    for _ in 0..3 {
+        let rand_index = rand::gen_range(0, blocks.len());
+        blocks[rand_index].block_type = BlockType::SizeIncrease;
     }
 }
 
@@ -236,6 +278,10 @@ async fn main() {
                 for ball in game_run_state.balls.iter_mut() {
                     ball.update(get_frame_time());
                 }
+                game_run_state.increase_size_timer.update(get_frame_time());
+                if (game_run_state.increase_size_timer.is_timer_done()){
+                    game_run_state.player.rect.w = PLAYER_SIZE.x;
+                }
 
                 let mut spawn_later = vec![];
                 for ball in game_run_state.balls.iter_mut() {
@@ -247,6 +293,10 @@ async fn main() {
                                 game_run_state.score += 1;
                                 if let BlockType::SpawnBallOnDeath = block.block_type {
                                     spawn_later.push(Ball::new(ball.rect.point()));
+                                }
+                                if let BlockType::SizeIncrease = block.block_type {
+                                    game_run_state.increase_size_timer.start_timer(10f32);
+                                    game_run_state.player.rect.w = PLAYER_INCREASED_SIZE;
                                 }
                             }
                         }
