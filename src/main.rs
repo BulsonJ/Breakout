@@ -172,7 +172,7 @@ fn resolve_collision(a: &mut Rect, vel: &mut Vec2, b: &Rect) -> bool {
             vel.y = -to_signum.y * vel.y.abs();
         }
         false => {
-            a.x -= to_signum.x * intersection.h;
+            a.x -= to_signum.x * intersection.w;
             vel.x = -to_signum.x * vel.x.abs();
         }
     }
